@@ -1,10 +1,13 @@
 @import "tailwindcss";
 
+/* ----------------------------- */
+/* Tema CLARO fixo (sem auto-dark)
+/* ----------------------------- */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
-
+/* Tokens expostos ao Tailwind v4 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,15 +15,23 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Mantém componentes nativos (inputs, selects etc.) no modo claro */
+html {
+  color-scheme: light;
 }
 
+/* Se alguma coisa adicionar 'dark' no <html>, ainda assim força claro */
+.dark {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/* Base do documento */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Qualidade de vida (opcionais) */
+
