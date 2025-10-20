@@ -15,7 +15,7 @@ const FIXO = {
   port: 587,                            // 587 = STARTTLS
   secure: false,                        // 465=true, 587=false
   user: "rubstec@rubstec.com.br",       // <<< seu usuário
-  pass: "SUA_SENHA_AQUI",               // <<< SUA SENHA AQUI (trocar!)
+  pass: "Rubstec@12345",               // <<< SUA SENHA AQUI (trocar!)
   toRub: "rubstec@rubstec.com.br",      // cópia pra Rubstec
 };
 
