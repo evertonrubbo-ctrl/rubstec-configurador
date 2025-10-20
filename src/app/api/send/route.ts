@@ -47,9 +47,7 @@ function makeTransport(nodemailer: any, smtp: ReturnType<typeof resolveSMTP>, au
   });
 }
 
-/** GET de diagnóstico: abra https://SEU-SITE.vercel.app/api/send
- *  pra ver o host/porta/secure que o servidor está usando.
- */
+
 export async function GET() {
   const smtp = resolveSMTP();
   return NextResponse.json({
