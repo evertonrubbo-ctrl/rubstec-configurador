@@ -81,6 +81,7 @@ export default function FinalizarOrcamento({
 
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault();
+
     if (!nome || !email) {
       alert('Informe pelo menos Nome e E-mail.');
       return;
@@ -89,11 +90,11 @@ export default function FinalizarOrcamento({
     try {
       setEnviando(true);
 
-      // 1) Gera o PDF
       const pdfBlob = await gerarPdfBlob();
-      const pdfFile = new File([pdfBlob], 'orcamento-rubstec.pdf', { type: 'application/pdf' });
+      const pdfFile = new File([pdfBlob], 'orcamento-rubstec.pdf', {
+        type: 'application/pdf',
+      });
 
-      // 2) Monta FormData para a rota /api/send
       const fd = new FormData();
       fd.append('cliente_nome', nome);
       fd.append('cliente_email', email);
@@ -101,19 +102,43 @@ export default function FinalizarOrcamento({
       fd.append('total', totalFmt);
       fd.append('attachment', pdfFile);
 
-      const resp = await fetch('/api/send', { method: 'POST', body: fd });
-      const data = await resp.json();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
 
-      if (!resp.ok || !data.ok) {
-        console.error('SMTP resp', data);
-        throw new Error(data?.error || 'smtp_error');
+      const resp = await fetch('/api/send', {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      let data: any = null;
+      try {
+        const ct = resp.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          data = await resp.json();
+        } else {
+          const text = await resp.text();
+          data = { ok: false, error: text?.slice(0, 400) || 'Resposta não-JSON da API' };
+        }
+      } catch {
+        data = { ok: false, error: 'Falha ao interpretar a resposta da API' };
+      }
+
+      if (!resp.ok || !data?.ok) {
+        console.error('SMTP resp', { status: resp.status, data });
+        throw new Error(data?.error || `Falha HTTP ${resp.status}`);
       }
 
       setOpen(false);
       alert('Orçamento enviado com sucesso! Logo a Equipe Rubstec entrará em contato!');
     } catch (err: any) {
       console.error('Send error:', err);
-      alert(err?.message || 'Falha ao enviar o orçamento.');
+      const msg =
+        err?.name === 'AbortError'
+          ? 'Tempo de conexão esgotado. Tente novamente em instantes.'
+          : err?.message || 'Falha ao enviar o orçamento.';
+      alert(msg);
     } finally {
       setEnviando(false);
     }
