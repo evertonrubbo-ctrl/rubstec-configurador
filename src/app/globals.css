@@ -34,4 +34,27 @@ body {
 }
 
 /* Qualidade de vida (opcionais) */
+img, svg, video, canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 
+*:focus-visible {
+  outline: 2px solid #2563eb; /* azul */
+  outline-offset: 2px;
+}
+
+::selection {
+  background: #bfdbfe; /* azul claro */
+  color: #111827;
+}
+
+/* força claro mesmo se o sistema estiver em dark */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+  html { color-scheme: light; }
+}
