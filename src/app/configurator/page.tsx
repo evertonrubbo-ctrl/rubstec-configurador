@@ -2,8 +2,7 @@
 import { useRouter } from 'next/navigation';
 import type { SVGProps, ComponentType, ReactElement } from 'react';
 
-/** Versão anterior (cards com gradiente, badges, ícones) + LOGO no topo **/
-
+/** Versão com logo reduzido e imagens centralizadas/object-contain **/
 
 type Service = {
   title: string;
@@ -44,7 +43,8 @@ export default function StartConfigurator() {
   const services: Service[] = [
     {
       title: 'Identificador de Fios com Etiqueta Personalizada',
-      subtitle: 'Gravamos ou aplicamos etiquetas sob medida com códigos, numeração ou textos exclusivos em cada identificador.',
+      subtitle:
+        'Gravamos ou aplicamos etiquetas sob medida com códigos, numeração ou textos exclusivos em cada identificador.',
       href: '/configurator/identificador',
       badge: 'Mais pedido',
       accentFrom: '#0ea5e9',
@@ -59,7 +59,7 @@ export default function StartConfigurator() {
       badge: 'Kit completo',
       accentFrom: '#22c55e',
       accentTo: '#a3e635',
-       imageUrl: '/images/Terminal_identificacao_fios.png',
+      imageUrl: '/images/Terminal_identificacao_fios.png',
       Icon: TerminalIcon,
     },
     {
@@ -76,15 +76,20 @@ export default function StartConfigurator() {
   return (
     <main className="relative mx-auto max-w-6xl px-4 py-10">
       {/* Fundo decorativo */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-64 bg-gradient-to-b from-blue-50 to-transparent" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-10 -z-10 h-64 bg-gradient-to-b from-blue-50 to-transparent"
+      />
 
       <header className="mb-8 text-center">
-        {/* LOGO — ajuste o caminho da sua arte */}
+        {/* LOGO — tamanho reduzido e mais profissional */}
         <div className="mb-4 flex items-center justify-center">
           <img
-            src="/images/rubstec_logo.svg" 
-            alt="Rubstec Materiais Elétricos" 
-            className="h-16 w-auto"
+            src="/images/rubstec_logo.svg"
+            alt="Rubstec Materiais Elétricos"
+            width={180}           // largura alvo (~profissional)
+            height={44}           // altura alvo
+            style={{ height: 44, width: 'auto', maxHeight: 48 }}
           />
         </div>
 
@@ -112,13 +117,13 @@ export default function StartConfigurator() {
               style={{ background: `linear-gradient(90deg, ${s.accentFrom}, ${s.accentTo})` }}
             />
 
-            {/* imagem opcional */}
+            {/* imagem: centralizada e contida na caixa (sem cortar) */}
             {s.imageUrl ? (
-              <div className="aspect-[16/9] w-full overflow-hidden bg-gray-50">
+              <div className="aspect-[16/9] w-full overflow-hidden bg-white flex items-center justify-center p-3">
                 <img
                   src={s.imageUrl}
-                  alt="Imagem ilustrativa do serviço"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  alt={s.title}
+                  className="h-full w-full object-contain" /* antes object-cover; agora contém e centraliza */
                 />
               </div>
             ) : (
@@ -143,7 +148,13 @@ export default function StartConfigurator() {
               <div className="mt-auto flex items-center justify-between pt-2">
                 <div className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors group-hover:border-gray-300">
                   <span>Configurar agora</span>
-                  <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <svg
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
                     <path d="M5 12h14M13 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -158,7 +169,8 @@ export default function StartConfigurator() {
             <div
               className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               style={{
-                background: 'radial-gradient(600px circle at var(--x,50%) var(--y,20%), rgba(59,130,246,.08), transparent 40%)',
+                background:
+                  'radial-gradient(600px circle at var(--x,50%) var(--y,20%), rgba(59,130,246,.08), transparent 40%)',
               }}
             />
           </button>
@@ -169,6 +181,7 @@ export default function StartConfigurator() {
         Configure online e receba seus fios e identificadores prontos, com total precisão e qualidade Rubstec.
       </footer>
 
+      {/* Efeito de brilho acompanha o cursor */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
