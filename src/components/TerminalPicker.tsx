@@ -84,7 +84,7 @@ export default function TerminalPicker({ value, onChange, title, bitola, renderB
               className={[
                 "relative cursor-pointer rounded border p-3 bg-white flex flex-col items-center",
                 "transition-all duration-200",
-                expand ? "h-44" : "h-40", // alto só quando tem seletor de furo
+                expand ? "h-54" : "h-40", // alto só quando tem seletor de furo
                 active ? "ring-2 ring-blue-600 ring-offset-2" : "hover:bg-gray-50",
               ].join(" ")}
             >
