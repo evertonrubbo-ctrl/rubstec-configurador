@@ -20,7 +20,7 @@ const MO_UNIT = +(HORA_MO / 3600 * T_SEG_POR_PECA).toFixed(4);
 // espaçamento entre etiquetas (quase “grudadas”)
 const CELL_GAP = 6; // px
 
-type BorneKey    = 'uct4.1' | 'uct4.2' | 'uct6' | 'uct8' | 'duplo2n';
+type BorneKey    = 'uct4.1' | 'uct4.2' | 'uct6' | 'uct8' | 'uct10' | 'duplo2n';
 type MarkerPos   = 'top' | 'lateral';
 type MarkerColor = 'branco';
 const COLOR_LABEL: Record<MarkerColor, string> = { branco: 'Branco' };
@@ -29,7 +29,8 @@ type Family =
   | 'UCT-TM4'  | 'UCT-TMF4'
   | 'UCT-TM5'  | 'UCT-TMF5'
   | 'UCT-TM6'  | 'UCT-TMF6'
-  | 'UCT-TM8'  | 'UCT-TMF8';
+  | 'UCT-TM8'  | 'UCT-TMF8'
+  | 'UCT-TM10'  | 'UCT-TMF10';
 
 type BorneSpec = {
   id: BorneKey;
@@ -104,13 +105,27 @@ const BORNE_SPECS: BorneSpec[] = [
     familyByPos: { top: 'UCT-TM8', lateral: 'UCT-TMF8' },
     layoutByPos: { top: Array(6).fill(7), lateral: Array(6).fill(7) },
   },
+    {
+    id: 'uct10',
+    titulo: 'PT 10 - Bornes 10 mm²',
+    campoTexto: { largura: 10.5, altura: 9.6 },
+    canal: 6.2,
+    referencias: ['3212120 | 3212123 | 3212131'],
+    maxCharsByPos: { top: 4, lateral: 2 },
+    precoMaterial: 0.80,
+    Svg: TagSvg,
+    previewTopSrc: '/images/Identificao_superior_borne.png',
+    previewLatSrc: '/images/Identificao_lateral_borne.png',
+    familyByPos: { top: 'UCT-TM10', lateral: 'UCT-TMF10' },
+    layoutByPos: { top: Array(6).fill(7), lateral: Array(6).fill(7) },
+  },
   {
     id: 'duplo2n',
     titulo: 'PTTB 2,5 - Bornes Dois Níveis',
     campoTexto: { largura: 10.5, altura: 4.6 },
     canal: 4.2,
     referencias: ['3210567'],
-    maxCharsByPos: { top: 4, lateral: 2 },
+    maxCharsByPos: { top: 6, lateral: 6 },
     precoMaterial: 0.24,
     Svg: DoubleTagSvg,
     previewLatSrc: '/images/Identificao_lateral_borne_2_nivel.png',
@@ -350,10 +365,10 @@ export default function BornesPage() {
     setLastFocused(null);
   }, [qty]);
 
-  useEffect(() => {
+  //useEffect(() => {
   // lateral => 90° marcado; superior (horizontal) => 90° desmarcado
-  setRotate90(pos === 'top');
-  }, [pos]);
+  //setRotate90(pos === 'top');
+  //}, [pos]);
 
 
   // Limite por regra:
