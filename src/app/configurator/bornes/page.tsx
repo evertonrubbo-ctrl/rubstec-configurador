@@ -117,7 +117,7 @@ const BORNE_SPECS: BorneSpec[] = [
     previewTopSrc: '/images/Identificao_superior_borne.png',
     previewLatSrc: '/images/Identificao_lateral_borne.png',
     familyByPos: { top: 'UCT-TM10', lateral: 'UCT-TMF10' },
-    layoutByPos: { top: Array(6).fill(7), lateral: Array(6).fill(7) },
+    layoutByPos: { top: Array(6).fill(6), lateral: Array(6).fill(6) },
   },
   {
     id: 'duplo2n',
