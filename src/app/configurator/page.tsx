@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import type { SVGProps, ComponentType, ReactElement } from 'react';
 
-/** Versão com logo reduzido e imagens centralizadas/object-contain **/
+/** Versão com logo reduzido, imagens object-contain e WhatsApp de suporte **/
 
 type Service = {
   title: string;
@@ -37,8 +37,24 @@ const TerminalIcon = (props: SVGProps<SVGSVGElement>): ReactElement => (
   </svg>
 );
 
+/** Ícone WhatsApp */
+const WhatsIcon = (props: SVGProps<SVGSVGElement>): ReactElement => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" {...props}>
+    <path
+      fill="currentColor"
+      d="M19.11 17.66c-.27-.14-1.56-.77-1.8-.85-.24-.09-.41-.14-.59.14-.18.27-.68.85-.83 1.02-.15.18-.31.2-.58.07-.27-.14-1.12-.41-2.13-1.31-.79-.71-1.32-1.59-1.47-1.86-.15-.27-.02-.42.12-.56.13-.13.27-.31.41-.47.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.59-1.42-.81-1.95-.21-.5-.42-.43-.59-.44-.15-.01-.33-.01-.5-.01s-.48.07-.73.34c-.25.27-.96.94-.96 2.29 0 1.35.99 2.66 1.12 2.84.14.18 1.95 2.98 4.8 4.16 2.85 1.18 2.85.79 3.37.75.52-.04 1.56-.64 1.78-1.26.22-.62.22-1.14.15-1.26-.07-.12-.25-.2-.52-.34zM27.8 15.9c0 6.6-5.35 11.95-11.95 11.95-2.36 0-4.56-.69-6.4-1.88L4 28l2.12-5.26a11.88 11.88 0 0 1-1.26-5.84C4.86 10.3 10.21 5 16.85 5c3.19 0 6.07 1.24 8.16 3.25A11.9 11.9 0 0 1 27.8 15.9z"
+    />
+  </svg>
+);
+
 export default function StartConfigurator() {
   const router = useRouter();
+
+  /** WhatsApp */
+  const whatsappNumber = '5554991104548';
+  const waText =
+    'Olá! Tenho uma dúvida sobre os serviços de identificação (fios, bornes e cabos) da Rubstec.';
+  const waHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(waText)}`;
 
   const services: Service[] = [
     {
@@ -87,8 +103,8 @@ export default function StartConfigurator() {
           <img
             src="/images/rubstec_logo.svg"
             alt="Rubstec Materiais Elétricos"
-            width={180}           // largura alvo (~profissional)
-            height={44}           // altura alvo
+            width={180}
+            height={44}
             style={{ height: 44, width: 'auto', maxHeight: 48 }}
           />
         </div>
@@ -103,6 +119,7 @@ export default function StartConfigurator() {
         </p>
       </header>
 
+      {/* Cards dos serviços */}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s, i) => (
           <button
@@ -117,14 +134,10 @@ export default function StartConfigurator() {
               style={{ background: `linear-gradient(90deg, ${s.accentFrom}, ${s.accentTo})` }}
             />
 
-            {/* imagem: centralizada e contida na caixa (sem cortar) */}
+            {/* imagem centralizada e contida */}
             {s.imageUrl ? (
               <div className="aspect-[16/9] w-full overflow-hidden bg-white flex items-center justify-center p-3">
-                <img
-                  src={s.imageUrl}
-                  alt={s.title}
-                  className="h-full w-full object-contain" /* antes object-cover; agora contém e centraliza */
-                />
+                <img src={s.imageUrl} alt={s.title} className="h-full w-full object-contain" />
               </div>
             ) : (
               <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -177,9 +190,43 @@ export default function StartConfigurator() {
         ))}
       </section>
 
+      {/* Banner de dúvidas com WhatsApp */}
+      <section className="mx-auto mt-10 max-w-5xl">
+        <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border bg-white/80 p-5 shadow-sm ring-1 ring-black/5 sm:flex-row">
+          <div className="flex items-center gap-3 text-gray-800">
+            <WhatsIcon className="h-6 w-6 text-emerald-500" />
+            <p className="text-sm">
+              <span className="font-semibold">Ficou com alguma dúvida?</span> Fale com nosso time no WhatsApp.
+            </p>
+          </div>
+
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Falar no WhatsApp"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+          >
+            <WhatsIcon className="h-4 w-4 text-white" />
+            +55 54 99110-4548
+          </a>
+        </div>
+      </section>
+
       <footer className="mx-auto mt-8 max-w-3xl text-center text-xs text-gray-500">
         Configure online e receba seus fios e identificadores prontos, com total precisão e qualidade Rubstec.
       </footer>
+
+      {/* Botão flutuante do WhatsApp */}
+      <a
+        href={waHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="WhatsApp Rubstec"
+        className="fixed bottom-4 right-4 z-50 inline-flex items-center justify-center rounded-full bg-emerald-500 p-3 text-white shadow-lg transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+      >
+        <WhatsIcon className="h-6 w-6 text-white" />
+      </a>
 
       {/* Efeito de brilho acompanha o cursor */}
       <script
