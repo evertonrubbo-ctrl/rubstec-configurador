@@ -12,9 +12,9 @@ import FinalizarOrcamento from '@/components/FinalizarOrcamento';
 
 /* ===================== CONFIGURÁVEIS (MÃO DE OBRA) ===================== */
 // Preço/hora de mão de obra (venda)
-const HORA_MO = 120; // R$/h
+const HORA_MO = 60; // R$/h
 // Tempo por identificador (somente identificação nesta página)
-const T_IDENTIFICADOR_SEG = 16; // segundos por unidade
+const T_IDENTIFICADOR_SEG = 8; // segundos por unidade
 
 /* ===================== PREÇOS (mesmo esquema do configurador de cabos) ===================== */
 const PRECO_IDENT: Partial<Record<IdentifierType, Partial<Record<number, number>>>> = {
