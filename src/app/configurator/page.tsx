@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import type { SVGProps, ComponentType, ReactElement } from 'react';
 
 /** Versão com logo reduzido, imagens object-contain e WhatsApp de suporte **/
@@ -49,6 +50,43 @@ const WhatsIcon = (props: SVGProps<SVGSVGElement>): ReactElement => (
 
 export default function StartConfigurator() {
   const router = useRouter();
+
+  /** Inicializa Pixel + PageView **/
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // evita inicializar duas vezes
+    if (!(window as any)._fbq) {
+      !(function (f: any, b: Document, e: string, v: string, n?: any, t?: any, s?: any) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = true;
+        n.version = '2.0';
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = true;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode?.insertBefore(t, s);
+      })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+      (window as any).fbq('init', '642834115555979');
+    }
+
+    (window as any).fbq('track', 'PageView');
+  }, []);
+
+  /** helper para eventos do Pixel **/
+  const trackFbEvent = (event: string, params?: Record<string, unknown>) => {
+    if (typeof window === 'undefined') return;
+    const w = window as any;
+    if (!w.fbq) return;
+    w.fbq('track', event, params);
+  };
 
   /** WhatsApp */
   const whatsappNumber = '5554991104548';
@@ -124,7 +162,14 @@ export default function StartConfigurator() {
         {services.map((s, i) => (
           <button
             key={i}
-            onClick={() => router.push(s.href)}
+            onClick={() => {
+              // evento de interesse no serviço
+              trackFbEvent('ViewContent', {
+                content_name: s.title,
+                content_category: 'Configurador Rubstec',
+              });
+              router.push(s.href);
+            }}
             className="group relative flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left shadow-sm ring-1 ring-black/5 transition-all hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             aria-label={s.title}
           >
@@ -205,6 +250,12 @@ export default function StartConfigurator() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Falar no WhatsApp"
+            onClick={() =>
+              trackFbEvent('Contact', {
+                contact_channel: 'WhatsApp',
+                position: 'banner_inferior',
+              })
+            }
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
             <WhatsIcon className="h-4 w-4 text-white" />
@@ -223,6 +274,12 @@ export default function StartConfigurator() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp Rubstec"
+        onClick={() =>
+          trackFbEvent('Contact', {
+            contact_channel: 'WhatsApp',
+            position: 'botao_flotuante',
+          })
+        }
         className="fixed bottom-4 right-4 z-50 inline-flex items-center justify-center rounded-full bg-emerald-500 p-3 text-white shadow-lg transition hover:bg-emerald-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
       >
         <WhatsIcon className="h-6 w-6 text-white" />
