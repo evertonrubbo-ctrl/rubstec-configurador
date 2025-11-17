@@ -55,29 +55,34 @@ export default function StartConfigurator() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // evita inicializar duas vezes
-    if (!(window as any)._fbq) {
-      !(function (f: any, b: Document, e: string, v: string, n?: any, t?: any, s?: any) {
-        if (f.fbq) return;
-        n = f.fbq = function () {
-          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-        };
-        if (!f._fbq) f._fbq = n;
-        n.push = n;
-        n.loaded = true;
-        n.version = '2.0';
-        n.queue = [];
-        t = b.createElement(e);
-        t.async = true;
-        t.src = v;
-        s = b.getElementsByTagName(e)[0];
-        s.parentNode?.insertBefore(t, s);
-      })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+    const w = window as any;
 
-      (window as any).fbq('init', '642834115555979');
+    // evita inicializar duas vezes
+    if (!w.fbq) {
+      w.fbq = function (...args: any[]) {
+        if (w.fbq.callMethod) {
+          w.fbq.callMethod(...args);
+        } else {
+          w.fbq.queue.push(args);
+        }
+      };
+      if (!w._fbq) w._fbq = w.fbq;
+      w.fbq.push = w.fbq;
+      w.fbq.loaded = true;
+      w.fbq.version = '2.0';
+      w.fbq.queue = [];
+
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+
+      const firstScript = document.getElementsByTagName('script')[0];
+      firstScript?.parentNode?.insertBefore(script, firstScript);
     }
 
-    (window as any).fbq('track', 'PageView');
+    // inicializa com seu ID
+    w.fbq('init', '642834115555979');
+    w.fbq('track', 'PageView');
   }, []);
 
   /** helper para eventos do Pixel **/
@@ -91,7 +96,7 @@ export default function StartConfigurator() {
   /** WhatsApp */
   const whatsappNumber = '5554991104548';
   const waText =
-    'Olá! Tenho uma dúvida sobre os serviços de identificação (fios, bornes e cabos) da Rubstec.';
+    'Olá! Tenho uma dúvida sobre os serviços de identificação (fios, bornes, cabos e trilhos) da Rubstec.';
   const waHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(waText)}`;
 
   const services: Service[] = [
@@ -123,6 +128,19 @@ export default function StartConfigurator() {
       accentFrom: '#f59e0b',
       accentTo: '#f97316',
       imageUrl: '/images/Identificacao_bornes.png',
+      Icon: CableIcon,
+    },
+    /* NOVO SERVIÇO – CORTE DE TRILHO TS */
+    {
+      title: 'Corte de Trilho TS 35X7,5 Sob Medida',
+      subtitle:
+        'Realizamos de cortes em trilhos TS35X7,5 pronto para montagem do painel.',
+      href: '/configurator/trilho-ts',
+      badge: 'Novo',
+      accentFrom: '#6366f1',
+      accentTo: '#8b5cf6',
+      // se ainda não tiver a imagem, pode remover a linha abaixo ou trocar o caminho
+      imageUrl: '/images/Corte_trilho_ts.png',
       Icon: CableIcon,
     },
   ];
@@ -163,7 +181,6 @@ export default function StartConfigurator() {
           <button
             key={i}
             onClick={() => {
-              // evento de interesse no serviço
               trackFbEvent('ViewContent', {
                 content_name: s.title,
                 content_category: 'Configurador Rubstec',
@@ -265,7 +282,8 @@ export default function StartConfigurator() {
       </section>
 
       <footer className="mx-auto mt-8 max-w-3xl text-center text-xs text-gray-500">
-        Configure online e receba seus fios e identificadores prontos, com total precisão e qualidade Rubstec.
+        Configure online e receba seus fios, trilhos e identificadores prontos, com total precisão e qualidade
+        Rubstec.
       </footer>
 
       {/* Botão flutuante do WhatsApp */}

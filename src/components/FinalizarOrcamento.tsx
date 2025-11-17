@@ -2,7 +2,6 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 
-
 export type OrcItem = {
   id: string;
   metragem: number;
@@ -39,17 +38,19 @@ export default function FinalizarOrcamento({
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const dummyFormRef = useRef<HTMLFormElement>(null); // só para reaproveitar input[file]
+  const dummyFormRef = useRef<HTMLFormElement>(null);
 
   const totalFmt = useMemo(() => total.toFixed(2), [total]);
 
-  /** Gera PDF do #orcamento usando html2pdf bundle (sem EmailJS) */
+  /**
+   * Gera PDF do #orcamento usando html2canvas + jsPDF
+   * ajustando a escala para caber 100% em 1 página A4.
+   */
   async function gerarPdfBlob(): Promise<Blob> {
     const alvo = document.getElementById('orcamento');
     if (!alvo) throw new Error('Elemento #orcamento não encontrado na página.');
 
-    const { default: html2pdf } = await import('html2pdf.js/dist/html2pdf.bundle.min.js');
-
+    // Força visual "limpo" no PDF
     const style = document.createElement('style');
     style.textContent = `
       #orcamento, #orcamento * {
@@ -58,21 +59,71 @@ export default function FinalizarOrcamento({
         border-color: #e5e7eb !important;
         box-shadow: none !important;
       }
+
+      /* aumenta o "respiro" das linhas de cortes só no PDF */
+      #orcamento .cortes-card,
+      #orcamento .cortes-card * {
+        line-height: 1.4 !important;
+      }
+
+      #orcamento .cortes-line {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        display: block !important;
+      }
     `;
     document.head.appendChild(style);
 
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `orcamento-rubstec-${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.9 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const },
-    };
 
     try {
-      const worker = (html2pdf as any)().from(alvo).set(opt).toPdf();
-      const pdf: any = await worker.get('pdf');
-      const blob: Blob = pdf.output('blob');
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+
+      const canvas = await html2canvas(alvo, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scrollY: -window.scrollY,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // PDF A4 em retrato (portrait). Se quiser landscape, troque aqui.
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Margens de 5mm
+      const marginX = 5;
+      const marginY = 5;
+      const maxWidth = pageWidth - marginX * 2;
+      const maxHeight = pageHeight - marginY * 2;
+
+      // Tamanho da imagem em mm se usássemos largura cheia
+      let imgWidth = maxWidth;
+      let imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Se ainda ficar mais alto que a página, reduz a escala
+      if (imgHeight > maxHeight) {
+        const scale = maxHeight / imgHeight;
+        imgWidth *= scale;
+        imgHeight *= scale;
+      }
+
+      // Centraliza dentro da página com margens
+      const posX = (pageWidth - imgWidth) / 2;
+      const posY = marginY; // pode usar (pageHeight - imgHeight)/2 se quiser centralizar vertical
+
+      pdf.addImage(imgData, 'PNG', posX, posY, imgWidth, imgHeight);
+
+      const blob = pdf.output('blob');
       return blob;
     } finally {
       style.remove();
@@ -214,8 +265,9 @@ export default function FinalizarOrcamento({
               </div>
             </form>
 
-            {/* form “fantasma” só se você quiser reaproveitar um input[file]; não é necessário aqui */}
-            <form ref={dummyFormRef} className="hidden"><input type="file" /></form>
+            <form ref={dummyFormRef} className="hidden">
+              <input type="file" />
+            </form>
           </div>
         </div>
       )}
