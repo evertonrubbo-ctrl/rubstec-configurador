@@ -130,7 +130,6 @@ export default function StartConfigurator() {
       imageUrl: '/images/Identificacao_bornes.png',
       Icon: CableIcon,
     },
-    /* NOVO SERVIÇO – CORTE DE TRILHO TS */
     {
       title: 'Corte de Trilho TS 35X7,5 Sob Medida',
       subtitle:
@@ -139,7 +138,6 @@ export default function StartConfigurator() {
       badge: 'Novo',
       accentFrom: '#6366f1',
       accentTo: '#8b5cf6',
-      // se ainda não tiver a imagem, pode remover a linha abaixo ou trocar o caminho
       imageUrl: '/images/Corte_trilho_ts.png',
       Icon: CableIcon,
     },

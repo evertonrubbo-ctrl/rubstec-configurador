@@ -43,9 +43,9 @@ const TAMANHO_BARRA_MM = 2000; // 2m
 
 // preço de CADA BARRA completa (venda) – AJUSTE AQUI
 const PRECO_BARRA: Partial<Record<TipoTrilho, number>> = {
-  ts35_liso_zincado: 8.5, // R$ por barra de 2m
-  ts35_perfurado_zincado: 8.05,
-  ts35_aluminio: 9.62,
+  ts35_liso_zincado: 17, // R$ por barra de 2m
+  ts35_perfurado_zincado: 16.1,
+  ts35_aluminio: 19.24,
 };
 
 type LinhaCorte = {
