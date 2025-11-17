@@ -1,59 +1,63 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState } from "react";
-import FinalizarOrcamento from "@/components/FinalizarOrcamento";
+import React, { useMemo, useState } from 'react';
+import FinalizarOrcamento from '@/components/FinalizarOrcamento';
 
-type TipoTrilho =
-  | "ts35_liso_zincado"
-  | "ts35_perfurado_zincado"
-  | "ts35_aluminio"
+type TipoCanaleta = 'canaleta_pvc';
 
-const TIPOS_TRILHO: {
-  value: TipoTrilho;
+type TamanhoCanaleta = '30x50' | '50x50' | '20x20' | '30x80' | '50x80' | '80x80' | '110x80';
+
+const TIPOS_CANALETA: {
+  value: TipoCanaleta;
   label: string;
   image: string;
   description: string;
 }[] = [
   {
-    value: "ts35_perfurado_zincado",
-    label: "TS35 – Perfurado Zincado",
-    image: "/trilhos/perfurado-zincado.png",
-    description: "Com furos para fixação rápida de componentes.",
+    value: 'canaleta_pvc',
+    label: 'Canaleta PVC com Tampa',
+    image: '/canaletas/canaleta-pvc.png',
+    description: 'Canaleta branca com tampa, ideal para organização de cabos em painéis.',
   },
-  {
-    value: "ts35_aluminio",
-    label: "TS35 – Alumínio",
-    image: "/trilhos/aluminio-liso.png",
-    description: "Mais leve, ideal para painéis especiais.",
-  },
-  {
-    value: "ts35_liso_zincado",
-    label: "TS35 – Liso Zincado",
-    image: "/trilhos/aco-zincado-liso.png",
-    description: "Trilho padrão para bornes, superfície lisa zincada.",
-  },
+];
+
+const TAMANHOS_CANALETA: { value: TamanhoCanaleta; label: string }[] = [
+  { value: '30x50', label: '30 x 50 mm' },
+  { value: '50x50', label: '50 x 50 mm' },
+  { value: '20x20', label: '20 x 20 mm' },
+  { value: '30x80', label: '30 x 80 mm' },
+  { value: '50x80', label: '50 x 80 mm' },
+  { value: '80x80', label: '80 x 80 mm' },
+  { value: '110x80', label: '110 x 80 mm' }, 
 ];
 
 /* ===================== CONFIGURÁVEIS ===================== */
 
-// espessura (largura) da serra em mm – AJUSTE CONFORME SUA LÂMINA
+// espessura (largura) da serra em mm – AJUSTE AQUI SE PRECISAR
 const ESPESSURA_SERRA_MM = 3;
 
-// tamanho padrão da barra (em mm)
-const TAMANHO_BARRA_MM = 2000; // 2m
+// tamanho padrão da barra de canaleta (em mm) – ajuste se usar 3 m, por exemplo
+const TAMANHO_BARRA_MM = 2000; // 2 m
 
-// preço de CADA BARRA completa (venda) – AJUSTE AQUI
-const PRECO_BARRA: Partial<Record<TipoTrilho, number>> = {
-  ts35_liso_zincado: 17, // R$ por barra de 2m
-  ts35_perfurado_zincado: 16.1,
-  ts35_aluminio: 19.24,
+// preço de CADA BARRA completa por tamanho – AJUSTE AQUI
+const PRECO_BARRA_CANALETA: Partial<Record<TamanhoCanaleta, number>> = {
+  '30x50': 26.8,
+  '50x50': 40.73,
+  '20x20': 18.99,
+  '30x80': 53.55,
+  '50x80': 59.99,
+  '80x80': 83.39, 
+  '110x80': 100.33,    
 };
+
+type Corte45Option = 'nenhum' | 'esquerdo' | 'direito' | 'ambos';
 
 type LinhaCorte = {
   id: string;
   descricao: string;
   comprimento: number; // em mm
   quantidade: number;
+  corte45: Corte45Option;
 };
 
 type ItemOrcamento = {
@@ -65,31 +69,51 @@ type ItemOrcamento = {
 };
 
 function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export default function CorteTrilhoTsPage() {
-  const [tipoTrilho, setTipoTrilho] = useState<TipoTrilho | "">("");
-  const [descricao, setDescricao] = useState("");
-  const [comprimento, setComprimento] = useState<number | "">("");
-  const [quantidade, setQuantidade] = useState<number | "">("");
+function labelCorte45(c: Corte45Option): string {
+  switch (c) {
+    case 'esquerdo':
+      return '45° lado esquerdo';
+    case 'direito':
+      return '45° lado direito';
+    case 'ambos':
+      return '45° nos dois lados';
+    default:
+      return 'Sem corte 45°';
+  }
+}
+
+export default function CorteCanaletaPage() {
+  const [tipoCanaleta, setTipoCanaleta] = useState<TipoCanaleta | ''>('');
+  const [tamanhoCanaleta, setTamanhoCanaleta] = useState<TamanhoCanaleta | ''>('');
+  const [descricao, setDescricao] = useState('');
+  const [comprimento, setComprimento] = useState<number | ''>('');
+  const [quantidade, setQuantidade] = useState<number | ''>('');
+  const [corte45Sel, setCorte45Sel] = useState<Corte45Option>('nenhum');
   const [linhas, setLinhas] = useState<LinhaCorte[]>([]);
 
   /* ------------- adicionar / remover linhas digitadas ------------- */
   function addLinha() {
-    if (!tipoTrilho) {
-      alert("Selecione o tipo de trilho antes de adicionar.");
+    if (!tipoCanaleta) {
+      alert('Selecione o tipo de canaleta antes de adicionar.');
       return;
     }
+    if (!tamanhoCanaleta) {
+      alert('Selecione o tamanho da canaleta antes de adicionar.');
+      return;
+    }
+
     const comp = Number(comprimento);
     const qtd = Number(quantidade);
 
     if (!comp || comp <= 0) {
-      alert("Informe um comprimento válido (mm).");
+      alert('Informe um comprimento válido (mm).');
       return;
     }
     if (!qtd || qtd <= 0) {
-      alert("Informe uma quantidade válida.");
+      alert('Informe uma quantidade válida.');
       return;
     }
     if (comp > TAMANHO_BARRA_MM) {
@@ -106,12 +130,14 @@ export default function CorteTrilhoTsPage() {
         descricao: descricao.trim(),
         comprimento: comp,
         quantidade: qtd,
+        corte45: corte45Sel,
       },
     ]);
 
-    setDescricao("");
-    setComprimento("");
-    setQuantidade("");
+    setDescricao('');
+    setComprimento('');
+    setQuantidade('');
+    setCorte45Sel('nenhum');
   }
 
   function removerLinha(id: string) {
@@ -134,8 +160,8 @@ export default function CorteTrilhoTsPage() {
     return arr;
   }, [linhas]);
 
-  // algoritmo guloso: sempre tenta encaixar o maior corte na primeira barra com espaço
-  // agora já considerando a perda da serra em CADA peça
+  // algoritmo guloso: tenta encaixar o maior corte na primeira barra com espaço
+  // já considerando a perda da serra em CADA peça
   const barrasOtimizadas: number[][] = useMemo(() => {
     if (!cortesIndividuais.length) return [];
 
@@ -144,10 +170,10 @@ export default function CorteTrilhoTsPage() {
     const barrasCortes: number[][] = [];
 
     ordenados.forEach((corte) => {
-      // cada peça utiliza o comprimento dela + 1 corte de serra
+      // cada peça consome o comprimento dela + 1 corte de serra
       const consumo = corte + ESPESSURA_SERRA_MM;
 
-      // tenta achar uma barra que caiba esse consumo
+      // procura uma barra onde ainda caiba esse consumo
       let pos = barrasRestante.findIndex((restante) => restante >= consumo);
 
       if (pos === -1) {
@@ -165,65 +191,77 @@ export default function CorteTrilhoTsPage() {
   }, [cortesIndividuais]);
 
   const qtdBarras = barrasOtimizadas.length;
-  const precoBarra = tipoTrilho ? PRECO_BARRA[tipoTrilho] ?? 0 : 0;
+  const precoBarra =
+    tamanhoCanaleta && PRECO_BARRA_CANALETA[tamanhoCanaleta]
+      ? PRECO_BARRA_CANALETA[tamanhoCanaleta]!
+      : 0;
   const total = qtdBarras * precoBarra;
 
   /* ------------- ITENS PARA ENVIAR PARA O FinalizarOrcamento ------------- */
   const itensOrcamento: ItemOrcamento[] = useMemo(() => {
-    if (!tipoTrilho || !qtdBarras) return [];
-    const label =
-      TIPOS_TRILHO.find((t) => t.value === tipoTrilho)?.label || "Trilho TS";
+    if (!tipoCanaleta || !tamanhoCanaleta || !qtdBarras) return [];
+
+    const labelTipo =
+      TIPOS_CANALETA.find((t) => t.value === tipoCanaleta)?.label || 'Canaleta';
+    const labelTam =
+      TAMANHOS_CANALETA.find((t) => t.value === tamanhoCanaleta)?.label || '';
 
     return [
       {
-        id: "trilho",
-        descricao: `${label} – barras ${TAMANHO_BARRA_MM / 1000} m`,
+        id: 'canaleta',
+        descricao: `${labelTipo} ${labelTam} – barras ${TAMANHO_BARRA_MM / 1000} m`,
         quantidade: qtdBarras,
         unitario: precoBarra,
         subtotal: total,
       },
     ];
-  }, [tipoTrilho, qtdBarras, precoBarra, total]);
+  }, [tipoCanaleta, tamanhoCanaleta, qtdBarras, precoBarra, total]);
 
-  const labelTrilhoSelecionado =
-    tipoTrilho && TIPOS_TRILHO.find((t) => t.value === tipoTrilho)?.label;
+  const labelCanaletaSelecionada =
+    tipoCanaleta && TIPOS_CANALETA.find((t) => t.value === tipoCanaleta)?.label;
+  const labelTamanhoSelecionado =
+    tamanhoCanaleta && TAMANHOS_CANALETA.find((t) => t.value === tamanhoCanaleta)?.label;
 
   const totalSolicitadoMm = linhas.reduce(
     (acc, l) => acc + l.comprimento * l.quantidade,
     0
   );
 
-  // total de peças = total de cortes realizados (para perda total da serra)
+  // total de cortes (peças) e perda total da serra (informativo)
   const totalCortes = cortesIndividuais.length;
   const perdaTotalSerra = totalCortes * ESPESSURA_SERRA_MM;
 
   /* ===================== UI ===================== */
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Corte de Trilho TS Sob Medida</h1>
+      <h1 className="text-2xl font-semibold">Corte de Canaleta Sob Medida</h1>
+      <p className="text-sm text-gray-600">
+        Informe o tipo de canaleta, o tamanho, os comprimentos desejados e, se necessário,
+        marque quais peças terão corte em 45° em cada lado. O sistema calcula a quantidade
+        de barras e gera o orçamento automaticamente, já considerando a perda da serra.
+      </p>
 
       {/* FORM PRINCIPAL */}
       <section className="bg-white border rounded p-4 space-y-4">
-        {/* Tipo de trilho – seleção em cards com imagem */}
+        {/* Tipo de canaleta – seleção em cards com imagem */}
         <div>
-          <label className="block text-sm font-medium mb-2">Tipo de trilho</label>
+          <label className="block text-sm font-medium mb-2">Tipo de canaleta</label>
 
           <div className="grid gap-3 md:grid-cols-3">
-            {TIPOS_TRILHO.map((t) => {
-              const selected = tipoTrilho === t.value;
+            {TIPOS_CANALETA.map((t) => {
+              const selected = tipoCanaleta === t.value;
               return (
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setTipoTrilho(t.value)}
+                  onClick={() => setTipoCanaleta(t.value)}
                   className={[
-                    "flex flex-col items-stretch rounded-xl border bg-white text-left transition",
-                    "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    selected ? "border-blue-600 ring-2 ring-blue-500" : "border-gray-300",
-                  ].join(" ")}
+                    'flex flex-col items-stretch rounded-xl border bg-white text-left transition',
+                    'hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    selected ? 'border-blue-600 ring-2 ring-blue-500' : 'border-gray-300',
+                  ].join(' ')}
                 >
                   <div className="w-full h-28 border-b bg-gray-50 rounded-t-xl overflow-hidden flex items-center justify-center">
-                    {/* ajuste o tamanho da imagem conforme necessário */}
                     <img
                       src={t.image}
                       alt={t.label}
@@ -245,8 +283,32 @@ export default function CorteTrilhoTsPage() {
           </div>
         </div>
 
+        {/* Tamanho da canaleta */}
+        <div className="grid md:grid-cols-3 gap-3 items-end">
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium mb-1">Tamanho da canaleta</label>
+            <select
+              className="border rounded p-2 w-full text-sm"
+              value={tamanhoCanaleta}
+              onChange={(e) => setTamanhoCanaleta(e.target.value as TamanhoCanaleta)}
+            >
+              <option value="">Selecione...</option>
+              {TAMANHOS_CANALETA.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2 text-xs text-gray-500">
+            As barras possuem {TAMANHO_BARRA_MM / 1000} m de comprimento.
+            Cada corte possui uma perda aproximada de {ESPESSURA_SERRA_MM} mm por corte.
+          </div>
+        </div>
+
         {/* Linha para digitar peça */}
-        <div className="grid md:grid-cols-4 gap-3 items-end">
+        <div className="grid md:grid-cols-5 gap-3 items-end">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">
               Descrição (opcional)
@@ -254,38 +316,48 @@ export default function CorteTrilhoTsPage() {
             <input
               type="text"
               className="border rounded p-2 w-full"
-              placeholder="Ex.: Trilho para bornes lado A"
+              placeholder="Ex.: Canaleta superior painel A"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Comprimento (mm)
-            </label>
+            <label className="block text-sm font-medium mb-1">Comprimento (mm)</label>
             <input
               type="number"
               className="border rounded p-2 w-full"
-              placeholder="Ex.: 350"
+              placeholder="Ex.: 750"
               value={comprimento}
-              onChange={(e) => setComprimento(Number(e.target.value) || "")}
+              onChange={(e) => setComprimento(Number(e.target.value) || '')}
               min={1}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Quantidade
-            </label>
+            <label className="block text-sm font-medium mb-1">Quantidade</label>
             <input
               type="number"
               className="border rounded p-2 w-full"
               placeholder="Ex.: 4"
               value={quantidade}
-              onChange={(e) => setQuantidade(Number(e.target.value) || "")}
+              onChange={(e) => setQuantidade(Number(e.target.value) || '')}
               min={1}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Corte em 45°</label>
+            <select
+              className="border rounded p-2 w-full text-sm"
+              value={corte45Sel}
+              onChange={(e) => setCorte45Sel(e.target.value as Corte45Option)}
+            >
+              <option value="nenhum">Sem corte 45°</option>
+              <option value="esquerdo">Lado esquerdo</option>
+              <option value="direito">Lado direito</option>
+              <option value="ambos">Ambos os lados</option>
+            </select>
           </div>
         </div>
 
@@ -301,7 +373,7 @@ export default function CorteTrilhoTsPage() {
       {/* LISTA DE PEÇAS DIGITADAS */}
       <section className="bg-white border rounded p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Peças do painel</h2>
+          <h2 className="text-lg font-semibold">Peças da canaleta</h2>
           {linhas.length > 0 && (
             <button
               onClick={limparLinhas}
@@ -314,8 +386,8 @@ export default function CorteTrilhoTsPage() {
 
         {linhas.length === 0 ? (
           <p className="text-sm text-gray-500">
-            Nenhuma peça adicionada ainda. Informe descrição, comprimento e
-            quantidade e clique em &quot;Adicionar à lista&quot;.
+            Nenhuma peça adicionada ainda. Informe descrição, comprimento, quantidade
+            e corte em 45° (se necessário), e clique em &quot;Adicionar à lista&quot;.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -326,7 +398,8 @@ export default function CorteTrilhoTsPage() {
                   <th className="py-2 pr-4">Comprimento (mm)</th>
                   <th className="py-2 pr-4">Quantidade</th>
                   <th className="py-2 pr-4">Total (mm)</th>
-                  <th className="py-2 pr-4"></th>
+                  <th className="py-2 pr-4">Corte 45°</th>
+                  <th className="py-2 pr-4" />
                 </tr>
               </thead>
               <tbody>
@@ -342,6 +415,7 @@ export default function CorteTrilhoTsPage() {
                     <td className="py-2 pr-4">
                       {l.comprimento * l.quantidade}
                     </td>
+                    <td className="py-2 pr-4">{labelCorte45(l.corte45)}</td>
                     <td className="py-2 pr-4">
                       <button
                         onClick={() => removerLinha(l.id)}
@@ -359,22 +433,20 @@ export default function CorteTrilhoTsPage() {
       </section>
 
       {/* ORÇAMENTO + OTIMIZAÇÃO */}
-      <section
-        id="orcamento"
-        className="bg-white border rounded p-4 space-y-4"
-      >
+      <section id="orcamento" className="bg-white border rounded p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Resumo do orçamento</h2>
-          {labelTrilhoSelecionado && (
-            <span className="text-sm text-gray-600">
-              {labelTrilhoSelecionado}
-            </span>
-          )}
+          <div className="text-sm text-gray-600">
+            {labelCanaletaSelecionada && <span>{labelCanaletaSelecionada}</span>}
+            {labelTamanhoSelecionado && (
+              <span className="ml-2 text-gray-500">• {labelTamanhoSelecionado}</span>
+            )}
+          </div>
         </div>
 
-        {(!tipoTrilho || linhas.length === 0 || !qtdBarras) ? (
+        {(!tipoCanaleta || !tamanhoCanaleta || linhas.length === 0 || !qtdBarras) ? (
           <p className="text-sm text-gray-500">
-            Para gerar o orçamento, selecione um tipo de trilho e adicione
+            Para gerar o orçamento, selecione o tipo e o tamanho da canaleta e adicione
             pelo menos uma peça na lista.
           </p>
         ) : (
@@ -382,15 +454,13 @@ export default function CorteTrilhoTsPage() {
             {/* Resumo numérico */}
             <div className="space-y-1 text-sm">
               <p>
-                <b>Tamanho da barra utilizada:</b>{" "}
-                {TAMANHO_BARRA_MM / 1000} m
+                <b>Tamanho da barra considerada:</b> {TAMANHO_BARRA_MM / 1000} m
               </p>
               <p>
-                <b>Total de comprimento solicitado:</b>{" "}
-                {totalSolicitadoMm} mm
+                <b>Total de comprimento solicitado:</b> {totalSolicitadoMm} mm
               </p>
               <p>
-                <b>Total de cortes (peças):</b> {totalCortes}{" "}
+                <b>Total de cortes (peças):</b> {totalCortes}{' '}
                 <span className="text-gray-500">
                   (perda estimada da serra: {perdaTotalSerra} mm)
                 </span>
@@ -399,11 +469,10 @@ export default function CorteTrilhoTsPage() {
                 <b>Quantidade de barras necessárias:</b> {qtdBarras}
               </p>
               <p>
-                <b>Preço unitário da barra:</b>{" "}
-                {formatBRL(precoBarra)}
+                <b>Preço unitário da barra:</b> {formatBRL(precoBarra)}
               </p>
               <p className="text-base">
-                <b>Total do trilho:</b> {formatBRL(total)}
+                <b>Total das canaletas:</b> {formatBRL(total)}
               </p>
             </div>
 
@@ -413,35 +482,26 @@ export default function CorteTrilhoTsPage() {
                 Otimização dos cortes por barra
               </h3>
               {barrasOtimizadas.map((cortes, idx) => {
-                // Soma dos cortes existentes na barra
                 const somaCortes = cortes.reduce((acc, c) => acc + c, 0);
-
-                // Quantidade de cortes realizados nessa barra
                 const numeroDeCortes = cortes.length;
+                const perdaSerraBarra = numeroDeCortes * ESPESSURA_SERRA_MM;
 
-                // Perda total nessa barra
-                const perdaSerraBarra =
-                  numeroDeCortes * ESPESSURA_SERRA_MM;
-
-                // Sobra real da barra, considerando o material perdido
-                let sobra =
-                  TAMANHO_BARRA_MM - (somaCortes + perdaSerraBarra);
-                if (sobra < 0) sobra = 0; // segurança
+                let sobra = TAMANHO_BARRA_MM - (somaCortes + perdaSerraBarra);
+                if (sobra < 0) sobra = 0;
 
                 return (
                   <div
                     key={idx}
                     className="text-xs bg-gray-50 border rounded p-2 cortes-card"
                   >
-                    <div className="font-semibold mb-1">Barra {idx + 1}</div>
-
-                    {/* linha marcada para ajustar no PDF */}
-                    <div className="cortes-line">
-                      Cortes: {cortes.join(" mm, ")} mm
+                    <div className="font-semibold mb-1">
+                      Barra {idx + 1}
                     </div>
-
+                    <div className="cortes-line">
+                      Cortes: {cortes.join(' mm, ')} mm
+                    </div>
                     <div>
-                      Sobra: {sobra} mm{" "}
+                      Sobra: {sobra} mm{' '}
                       <span className="text-gray-400">
                         (perda serra: {perdaSerraBarra} mm)
                       </span>
@@ -454,12 +514,9 @@ export default function CorteTrilhoTsPage() {
         )}
       </section>
 
-      {/* Envio / finalização – usa mesmo componente dos outros serviços */}
+      {/* Envio / finalização – mesmo componente dos outros serviços */}
       <div className="flex justify-end">
-        <FinalizarOrcamento
-          itens={itensOrcamento as any}
-          total={total}
-        />
+        <FinalizarOrcamento itens={itensOrcamento as any} total={total} />
       </div>
     </main>
   );

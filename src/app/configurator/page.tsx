@@ -141,6 +141,18 @@ export default function StartConfigurator() {
       imageUrl: '/images/Corte_trilho_ts.png',
       Icon: CableIcon,
     },
+    // NOVO SERVIÇO: CORTE DE CANALETA
+    {
+      title: 'Corte de Canaleta Sob Medida',
+      subtitle:
+        'Cortes retos e em 45° em canaletas com tampa, prontos para montagem do painel.',
+      href: '/configurator/canaleta',
+      badge: 'Novo',
+      accentFrom: '#ec4899',
+      accentTo: '#f97316',
+      imageUrl: '/images/Corte_canaleta.png',
+      Icon: CableIcon,
+    },
   ];
 
   return (
@@ -240,7 +252,7 @@ export default function StartConfigurator() {
 
             {/* brilho no hover */}
             <div
-              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duração-300 group-hover:opacity-100"
               style={{
                 background:
                   'radial-gradient(600px circle at var(--x,50%) var(--y,20%), rgba(59,130,246,.08), transparent 40%)',
