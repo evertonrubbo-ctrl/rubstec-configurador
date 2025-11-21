@@ -112,10 +112,9 @@ export default function StartConfigurator() {
       Icon: TagIcon,
     },
     {
-      title: 'Fios com Terminais + Identificador',
-      subtitle: 'Corte na metragem, crimpagem de terminais e identificação pronta para instalar.',
+      title: 'Crimpagem de Terminais',
+      subtitle: 'Corte na metragem, crimpagem de terminais e opção de identificação pronta para instalar.',
       href: '/configurator/cabos',
-      badge: 'Kit completo',
       accentFrom: '#22c55e',
       accentTo: '#a3e635',
       imageUrl: '/images/Terminal_identificacao_fios.png',
@@ -141,7 +140,6 @@ export default function StartConfigurator() {
       imageUrl: '/images/Corte_trilho_ts.png',
       Icon: CableIcon,
     },
-    // NOVO SERVIÇO: CORTE DE CANALETA
     {
       title: 'Corte de Canaleta Sob Medida',
       subtitle:
