@@ -81,14 +81,15 @@ export default function FinalizarOrcamento({
         import('jspdf'),
       ]);
 
-      const canvas = await html2canvas(alvo, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        scrollY: -window.scrollY,
-      });
+    const canvas = await html2canvas(alvo, {
+      scale: 1.25,          // era 2 (isso explode o tamanho)
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      scrollY: -window.scrollY,
+      logging: false,
+    });
 
-      const imgData = canvas.toDataURL('image/png');
+     const imgData = canvas.toDataURL('image/jpeg', 0.75); // qualidade 0.75 (boa e leve)
 
       // PDF A4 em retrato (portrait). Se quiser landscape, troque aqui.
       const pdf = new jsPDF({
@@ -121,7 +122,7 @@ export default function FinalizarOrcamento({
       const posX = (pageWidth - imgWidth) / 2;
       const posY = marginY; // pode usar (pageHeight - imgHeight)/2 se quiser centralizar vertical
 
-      pdf.addImage(imgData, 'PNG', posX, posY, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', posX, posY, imgWidth, imgHeight);
 
       const blob = pdf.output('blob');
       return blob;

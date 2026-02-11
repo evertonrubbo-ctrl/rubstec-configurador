@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import IdentifierPicker, {
   IdentifierType,
   MarkerColor,
@@ -15,6 +15,10 @@ import FinalizarOrcamento from '@/components/FinalizarOrcamento';
 const HORA_MO = 60; // R$/h
 // Tempo por identificador (somente identificação nesta página)
 const T_IDENTIFICADOR_SEG = 8; // segundos por unidade
+
+/* ===================== LIMITES / REGRAS ===================== */
+const MAX_TEXT_LEN = 8;          // máximo de caracteres por identificação (conforme UI)
+const MAX_IMPORT_ITENS = 5000;   // segurança para não travar a tela (ajuste se quiser)
 
 /* ===================== PREÇOS (mesmo esquema do configurador de cabos) ===================== */
 const PRECO_IDENT: Partial<Record<IdentifierType, Partial<Record<number, number>>>> = {
@@ -57,12 +61,29 @@ type CartItem = {
   bitola: number;
   qty: number;
   texts: string[];
-  unitPrice: number;   // TOTAL unitário (materiais + MO)
+  unitPrice: number; // TOTAL unitário (materiais + MO)
   subtotal: number;
 };
 
 function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/* Normaliza texto: uppercase + trim + corta no limite */
+function normalizeIdent(raw: any) {
+  const s = String(raw ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+  return s.slice(0, MAX_TEXT_LEN);
+}
+
+function parseQty(raw: any) {
+  // aceita 15, "15", "15,0", "15.0"
+  if (raw === null || raw === undefined) return 0;
+  const s = String(raw).trim().replace(',', '.');
+  const n = Math.floor(Number(s));
+  return Number.isFinite(n) ? n : 0;
 }
 
 export default function MarcacaoDeFiosPage() {
@@ -78,7 +99,15 @@ export default function MarcacaoDeFiosPage() {
   const [qty, setQty] = useState<number>(10);
 
   // etapa 3
-  const [texts, setTexts] = useState<string[]>(Array.from({ length: qty }, () => ''));
+  const [texts, setTexts] = useState<string[]>(Array.from({ length: 10 }, () => ''));
+
+  // import excel (passo 3)
+  const [hasHeader, setHasHeader] = useState<boolean>(false);
+  const [importStatus, setImportStatus] = useState<{ kind: 'idle' | 'ok' | 'err'; msg: string }>({
+    kind: 'idle',
+    msg: '',
+  });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // itens do orçamento
   const [items, setItems] = useState<CartItem[]>([]);
@@ -88,8 +117,6 @@ export default function MarcacaoDeFiosPage() {
     const allowed = AVAILABLE_COLORS_BY_ID[type] ?? [];
     if (allowed.length > 0) {
       if (!allowed.includes(color)) setColor(allowed[0]);
-    } else {
-      // se para este tipo não há paleta, mantemos cor atual
     }
   }, [type]); // eslint-disable-line
 
@@ -114,7 +141,7 @@ export default function MarcacaoDeFiosPage() {
     return Number(val || 0);
   }, [type, bitola]);
 
-  // Mão de obra por unidade (HORA_MO -> R$/segundo * 16s)
+  // Mão de obra por unidade
   const laborUnit = useMemo(() => {
     const rps = HORA_MO / 3600; // R$/seg
     return Number((rps * T_IDENTIFICADOR_SEG).toFixed(4));
@@ -122,45 +149,171 @@ export default function MarcacaoDeFiosPage() {
 
   // Total unitário (materiais + MO)
   const unitPrice = useMemo(() => Number((materialUnit + laborUnit).toFixed(2)), [materialUnit, laborUnit]);
-
   const subtotalPreview = useMemo(() => Number((unitPrice * qty).toFixed(2)), [unitPrice, qty]);
 
   /* -------------------- navegação/validações -------------------- */
   const canNext =
     (step === 1 && !!type && !!bitola && !!color) ||
     (step === 2 && qty > 0) ||
-    (step === 3 && texts.every((t) => t.trim().length > 0));
+    (step === 3 && texts.length === qty && texts.every((t) => t.trim().length > 0));
 
-  const goNext = () => { if (canNext) setStep((s) => (Math.min(3, (s + 1)) as 1 | 2 | 3)); };
+  const goNext = () => {
+    if (canNext) setStep((s) => (Math.min(3, (s + 1)) as 1 | 2 | 3));
+  };
   const goBack = () => setStep((s) => (Math.max(1, (s - 1)) as 1 | 2 | 3));
+
+  /* -------------------- importar excel -------------------- */
+  function openFilePicker() {
+    setImportStatus({ kind: 'idle', msg: '' });
+    fileInputRef.current?.click();
+  }
+
+  async function handleExcelFile(file: File) {
+    setImportStatus({ kind: 'idle', msg: '' });
+
+    try {
+      // Import dinâmico para evitar problemas de bundle/SSR
+      const XLSX = await import('xlsx');
+
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+
+      const firstSheetName = wb.SheetNames?.[0];
+      if (!firstSheetName) {
+        setImportStatus({ kind: 'err', msg: 'Arquivo sem planilhas.' });
+        return;
+      }
+
+      const ws = wb.Sheets[firstSheetName];
+      const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+
+      if (!rows || rows.length === 0) {
+        setImportStatus({ kind: 'err', msg: 'Planilha vazia.' });
+        return;
+      }
+
+      const startIdx = hasHeader ? 1 : 0;
+      const dataRows = rows.slice(startIdx);
+
+      const expanded: string[] = [];
+      let skipped = 0;
+      let truncated = 0;
+
+      for (const r of dataRows) {
+        if (!r || r.length === 0) continue;
+
+        const identRaw = r[0];
+        const qtyRaw = r[1];
+
+        const ident = normalizeIdent(identRaw);
+        const q = parseQty(qtyRaw);
+
+        if (!ident || q <= 0) {
+          skipped++;
+          continue;
+        }
+
+        // expande
+        for (let i = 0; i < q; i++) {
+          expanded.push(ident);
+          if (expanded.length > MAX_IMPORT_ITENS) break;
+        }
+
+        // segurança
+        if (expanded.length > MAX_IMPORT_ITENS) break;
+
+        // se o texto original era maior que limite, conta truncamento
+        const original = String(identRaw ?? '').trim().toUpperCase();
+        if (original.length > MAX_TEXT_LEN) truncated++;
+      }
+
+      if (expanded.length === 0) {
+        setImportStatus({
+          kind: 'err',
+          msg: 'Não encontrei linhas válidas. Use 2 colunas: Identificação (A) e Quantidade (B).',
+        });
+        return;
+      }
+
+      if (expanded.length > MAX_IMPORT_ITENS) {
+        expanded.length = MAX_IMPORT_ITENS;
+        setImportStatus({
+          kind: 'err',
+          msg: `Arquivo muito grande. Importei apenas os primeiros ${MAX_IMPORT_ITENS} itens para evitar travar a tela.`,
+        });
+      } else {
+        const extras: string[] = [];
+        if (skipped > 0) extras.push(`${skipped} linha(s) ignorada(s)`);
+        if (truncated > 0) extras.push(`${truncated} identificação(ões) cortada(s) em ${MAX_TEXT_LEN} caracteres`);
+
+        setImportStatus({
+          kind: 'ok',
+          msg: `Importado: ${expanded.length} itens.` + (extras.length ? ` (${extras.join(' • ')})` : ''),
+        });
+      }
+
+      // aplica na tela (passo 3)
+      setStep(3);
+      setQty(expanded.length);
+      setTexts(expanded);
+    } catch (e: any) {
+      setImportStatus({
+        kind: 'err',
+        msg: `Falha ao ler o arquivo. Verifique se é .xlsx/.xls/.csv válido. (${e?.message ?? 'erro'})`,
+      });
+    }
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    // limpa para permitir reimportar o mesmo arquivo
+    e.target.value = '';
+    handleExcelFile(f);
+  }
 
   /* -------------------- adicionar ao orçamento -------------------- */
   function addToCart() {
     if (!canNext || step !== 3) return;
+
     const item: CartItem = {
       id: crypto.randomUUID(),
       type,
       color,
       bitola,
       qty,
-      texts: texts.map((t) => t.trim().toUpperCase()),
-      unitPrice, // já com materiais + MO
+      texts: texts.map((t) => normalizeIdent(t)),
+      unitPrice,
       subtotal: Number((unitPrice * qty).toFixed(2)),
     };
+
     setItems((prev) => [...prev, item]);
 
     // reset leve para novo lançamento
     setStep(1);
     setQty(10);
     setTexts(Array.from({ length: 10 }, () => ''));
+    setImportStatus({ kind: 'idle', msg: '' });
   }
 
   const total = items.reduce((s, it) => s + it.subtotal, 0);
 
   const STEP_HELP: Record<number, React.ReactNode> = {
-    1: <>Passo 1: Escolha a <b>IDENTIFICAÇÃO</b> (luva, termorretrátil, clip), <b>COR</b> e para qual <b>BITOLA</b> de fio.</>,
-    2: <>Passo 2: Defina a <b>QUANTIDADE</b> de identificador.</>,
-    3: <>Passo 3: Informe a <b>LEGENDA</b> dos identificadores e adicione no orçamento.</>,
+    1: (
+      <>
+        Passo 1: Escolha a <b>IDENTIFICAÇÃO</b> (luva, termorretrátil, clip), <b>COR</b> e para qual <b>BITOLA</b> de fio.
+      </>
+    ),
+    2: (
+      <>
+        Passo 2: Defina a <b>QUANTIDADE</b> de identificador.
+      </>
+    ),
+    3: (
+      <>
+        Passo 3: Informe a <b>LEGENDA</b> dos identificadores (máx. {MAX_TEXT_LEN} caracteres) e adicione no orçamento.
+      </>
+    ),
   };
 
   /* ===================== UI ===================== */
@@ -170,30 +323,41 @@ export default function MarcacaoDeFiosPage() {
 
       {/* Navegação passos */}
       <div className="flex items-center justify-between bg-white border rounded p-3">
-        <div>Passo <b>{step}</b> de 3</div>
+        <div>
+          Passo <b>{step}</b> de 3
+        </div>
         <div className="space-x-2">
-          <button onClick={goBack} disabled={step === 1}
-            className={`px-3 py-1 rounded border ${step===1?'opacity-50':'hover:bg-gray-50'}`}>Voltar</button>
+          <button
+            onClick={goBack}
+            disabled={step === 1}
+            className={`px-3 py-1 rounded border ${step === 1 ? 'opacity-50' : 'hover:bg-gray-50'}`}
+          >
+            Voltar
+          </button>
           {step < 3 ? (
-            <button onClick={goNext} disabled={!canNext}
-              className={`px-3 py-1 rounded ${canNext?'bg-blue-600 text-white':'bg-gray-300 text-gray-600'}`}>
+            <button
+              onClick={goNext}
+              disabled={!canNext}
+              className={`px-3 py-1 rounded ${canNext ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}
+            >
               Próximo
             </button>
           ) : (
-            <button onClick={addToCart} disabled={!canNext}
-              className="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50">
+            <button
+              onClick={addToCart}
+              disabled={!canNext}
+              className="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
+            >
               Adicionar ao orçamento
             </button>
           )}
         </div>
       </div>
-     
-     {/* ajuda do passo atual */}
-      <p className="text-sm text-gray-600 bg-white border border-t-0 rounded-b p-3"
-        aria-live="polite">
+
+      {/* ajuda do passo atual */}
+      <p className="text-sm text-gray-600 bg-white border border-t-0 rounded-b p-3" aria-live="polite">
         {STEP_HELP[step]}
       </p>
-
 
       {/* PASSO 1 – tipo + cor + bitola */}
       {step === 1 && (
@@ -205,7 +369,6 @@ export default function MarcacaoDeFiosPage() {
               onChange={setType}
               selectedColor={color}
               onColorChange={setColor}
-              // Paleta controlada pelo próprio componente
             />
             <div className="text-sm text-gray-600">
               Cor selecionada: <b>{COLOR_LABEL[color] ?? color}</b>
@@ -237,22 +400,78 @@ export default function MarcacaoDeFiosPage() {
         </section>
       )}
 
-      {/* PASSO 3 – N caixas de texto */}
+      {/* PASSO 3 – import + N caixas de texto */}
       {step === 3 && (
         <section className="space-y-4">
           <div className="text-lg font-semibold">Textos para impressão ({qty})</div>
+
+          {/* Importador Excel */}
+          <div className="bg-white border rounded p-4 space-y-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={openFilePicker}
+                  className="px-3 py-2 rounded border bg-gray-50 hover:bg-gray-100"
+                >
+                  Importar Excel
+                </button>
+
+                <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
+                  <input
+                    type="checkbox"
+                    checked={hasHeader}
+                    onChange={(e) => setHasHeader(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Arquivo contém cabeçalho
+                </label>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={onFileChange}
+                  className="hidden"
+                />
+              </div>
+
+              {importStatus.kind !== 'idle' && (
+                <div
+                  className={`text-sm ${
+                    importStatus.kind === 'ok' ? 'text-emerald-700' : 'text-red-700'
+                  }`}
+                >
+                  {importStatus.msg}
+                </div>
+              )}
+            </div>
+
+            <div className="text-sm text-gray-600">
+              O arquivo precisa conter <b>duas colunas</b>: <b>Identificação</b> (coluna A) e <b>Quantidade</b> (coluna B). Exemplo:
+              <pre className="mt-2 p-2 bg-gray-50 border rounded text-xs overflow-x-auto">
+{`CR4.43\t15
+CR4.44\t15
+CR4.21\t15
+CR4.22\t15`}
+              </pre>
+              Se “Arquivo contém cabeçalho” estiver marcado, a primeira linha será ignorada.
+            </div>
+          </div>
+
+          {/* Inputs */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {texts.map((val, idx) => (
               <div key={idx} className="space-y-1">
                 <div className="text-[11px] text-gray-600">Texto #{idx + 1}</div>
                 <input
                   type="text"
-                  maxLength={24}
+                  maxLength={MAX_TEXT_LEN}
                   className="border rounded p-2 w-full text-sm"
-                  placeholder="EX.: S2-21.1"
+                  placeholder="EX.: CR4.43"
                   value={val}
                   onChange={(e) => {
-                    const v = e.target.value.toUpperCase();
+                    const v = normalizeIdent(e.target.value);
                     setTexts((t) => {
                       const next = [...t];
                       next[idx] = v;
@@ -260,13 +479,15 @@ export default function MarcacaoDeFiosPage() {
                     });
                   }}
                 />
-                <div className="text-[11px] text-gray-500">Máx. 8 caracteres</div>
+                <div className="text-[11px] text-gray-500">Máx. {MAX_TEXT_LEN} caracteres</div>
               </div>
             ))}
           </div>
+
           <div className="text-sm text-gray-600">
             Preço unitário: <b>{formatBRL(unitPrice)}</b> — Subtotal: <b>{formatBRL(unitPrice * qty)}</b>
           </div>
+
           <div>
             <button
               onClick={addToCart}
@@ -338,7 +559,7 @@ export default function MarcacaoDeFiosPage() {
         )}
       </div>
 
-      {/* Envio do PDF por e-mail (reaproveita a mesma lógica do outro orçamento) */}
+      {/* Envio do PDF por e-mail */}
       <div className="flex justify-end">
         <FinalizarOrcamento itens={items as any} total={total} />
       </div>

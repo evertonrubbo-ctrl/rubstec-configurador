@@ -112,43 +112,12 @@ export default function StartConfigurator() {
       Icon: TagIcon,
     },
     {
-      title: 'Crimpagem de Terminais',
-      subtitle: 'Corte na metragem, crimpagem de terminais e opção de identificação pronta para instalar.',
-      href: '/configurator/cabos',
-      accentFrom: '#22c55e',
-      accentTo: '#a3e635',
-      imageUrl: '/images/Terminal_identificacao_fios.png',
-      Icon: TerminalIcon,
-    },
-    {
       title: 'Identificação de Bornes – Phoenix Contact',
       subtitle: 'Impressão profissional em cartelas (UCT) para Bornes Phoenix.',
       href: '/configurator/bornes',
       accentFrom: '#f59e0b',
       accentTo: '#f97316',
       imageUrl: '/images/Identificacao_bornes.png',
-      Icon: CableIcon,
-    },
-    {
-      title: 'Corte de Trilho TS 35X7,5 Sob Medida',
-      subtitle:
-        'Realizamos de cortes em trilhos TS35X7,5 pronto para montagem do painel.',
-      href: '/configurator/trilho-ts',
-      badge: 'Novo',
-      accentFrom: '#6366f1',
-      accentTo: '#8b5cf6',
-      imageUrl: '/images/Corte_trilho_ts.png',
-      Icon: CableIcon,
-    },
-    {
-      title: 'Corte de Canaleta Sob Medida',
-      subtitle:
-        'Cortes retos e em 45° em canaletas com tampa, prontos para montagem do painel.',
-      href: '/configurator/canaleta',
-      badge: 'Novo',
-      accentFrom: '#ec4899',
-      accentTo: '#f97316',
-      imageUrl: '/images/Corte_canaleta.png',
       Icon: CableIcon,
     },
   ];

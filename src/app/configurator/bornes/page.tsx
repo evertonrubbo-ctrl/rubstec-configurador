@@ -850,19 +850,35 @@ export default function BornesPage() {
                             </button>
                           </td>
                         </tr>
+                      <tr className="border-b">
+                        <td colSpan={9} className="py-3">
+                          <div className="text-sm font-medium mb-1">
+                            Lista de identificações ({it.preenchidas}/{it.qty}) — {suggestCartela(b, it.pos)}
+                          </div>
 
-                        <tr className="border-b">
-                          <td colSpan={9} className="py-3">
-                            <div className="text-sm font-medium mb-1">
-                              Lista de identificações ({it.preenchidas}/{it.qty}) — {suggestCartela(b, it.pos)}
-                            </div>
-                            <ol className="list-decimal pl-5 text-sm leading-6 whitespace-pre-wrap">
-                              {it.textos.map((t, i) => (
-                                <li key={i}>{`${i + 1}# `}{t && t.trim().length ? t : 'SEM IDENTIFICAÇÃO'}</li>
-                              ))}
-                            </ol>
-                          </td>
-                        </tr>
+                          {(() => {
+                            // quantos itens por linha (ajuste se quiser mais/menos)
+                            const PER_LINE = 12;
+
+                            const list = it.textos.map((t, i) => {
+                              const val = t && t.trim().length ? t.trim() : 'SEM IDENTIFICAÇÃO';
+                              // com numeração (igual você já usa):
+                              return `${i + 1}# ${val}`;
+                            });
+
+                            const lines: string[] = [];
+                            for (let i = 0; i < list.length; i += PER_LINE) {
+                              lines.push(list.slice(i, i + PER_LINE).join('; '));
+                            }
+
+                            return (
+                              <div className="text-sm leading-6 text-gray-900 break-words whitespace-pre-wrap">
+                                {lines.join(';\n')}
+                              </div>
+                            );
+                          })()}
+                        </td>
+                      </tr>
                       </React.Fragment>
                     );
                   })}
